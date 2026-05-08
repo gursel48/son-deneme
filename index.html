@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ortak alan</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f0f4f8;
+      margin: 0;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      padding-bottom: 80px;
+    }
+
+    .app-shell {
+      width: 100%;
+      max-width: 860px;
+    }
+
+    .menu-container, .quiz-container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      width: 100%;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .menu-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: left;
+      cursor: pointer;
+      background: linear-gradient(135deg, #007bff, #0056b3);
+      color: white;
+    }
+
+    .menu-btn.locked {
+      background: linear-gradient(135deg, #6c757d, #495057);
+      cursor: not-allowed;
+      order: 999;
+      opacity: 0.85;
+    }
+
+    .wrong-menu-btn {
+      border: none;
+      border-radius: 12px;
+      padding: 20px;
+      text-align: left;
+      cursor: pointer;
+      background: linear-gradient(135deg, #dc3545, #a71d2a);
+      color: white;
+      order: 9999;
+      animation: wrongBlink 10s infinite;
+    }
+
+    @keyframes wrongBlink {
+      0%, 45% {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(220,53,69,0);
+      }
+      50% {
+        opacity: 0.35;
+        transform: scale(1.02);
+        box-shadow: 0 0 18px rgba(220,53,69,0.45);
+      }
+      55%, 100% {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(220,53,69,0);
+      }
+    }
+
+    .quiz-container {
+      display: none;
+      position: relative;
+      padding-top: 85px;
+      min-height: 100vh;
+    }
+
+    .progress-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 6px;
+      background: #28a745;
+      transition: 0.3s;
+      width: 0%;
+      border-radius: 14px 14px 0 0;
+    }
+
+    .main-menu-btn {
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: calc(1rem + 4pt);
+      color: #333;
+      padding: 5px 0;
+    }
+
+    .header-info {
+      position: absolute;
+      top: 15px;
+      left: 20px;
+      right: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      padding-right: 110px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      min-width: 0;
+      flex: 1;
+      flex-wrap: wrap;
+    }
+
+    .header-subject {
+      font-weight: normal;
+      color: #777;
+      font-size: 0.95rem;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .retry-badge {
+      display: none;
+      margin-bottom: 12px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffe69c;
+      font-weight: bold;
+      font-size: 0.95rem;
+    }
+
+    .question-title {
+      margin-top: 0;
+      margin-bottom: 16px;
+      line-height: 1.45;
+      font-size: 1.2rem;
+      color: #222;
+    }
+
+    .option-btn {
+      width: 100%;
+      padding: 16px;
+      margin-bottom: 12px;
+      border-radius: 12px;
+      border: 2px solid #e9ecef;
+      background: #f8f9fa;
+      text-align: left;
+      cursor: pointer;
+      font-size: 1.05rem;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+      position: relative;
+    }
+
+    .option-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    }
+
+    .option-btn:disabled {
+      cursor: default;
+    }
+
+    .option-btn.correct {
+      background: #d4edda !important;
+      border-color: #28a745 !important;
+      color: #155724 !important;
+      font-weight: bold;
+    }
+
+    .option-btn.wrong {
+      background: #f8d7da !important;
+      border-color: #dc3545 !important;
+      color: #721c24 !important;
+      font-weight: bold;
+    }
+
+    .tick {
+      display: inline-block;
+      margin-left: 10px;
+      color: #1f9d45;
+      font-weight: bold;
+      opacity: 0;
+      transform: scale(0.4);
+    }
+
+    .tick.show {
+      animation: popTick 0.45s ease forwards;
+    }
+
+    @keyframes popTick {
+      0%   { opacity: 0; transform: scale(0.4); }
+      60%  { opacity: 1; transform: scale(1.2); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .explanation {
+      display: none;
+      margin-top: 20px;
+      padding: 15px;
+      background: #eaf2f8;
+      border-left: 5px solid #2980b9;
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+
+    .nav-controls {
+      display: flex;
+      gap: 12px;
+      margin-top: 25px;
+    }
+
+    .nav-btn {
+      flex: 1;
+      padding: 18px;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .next-btn { background: #007bff; }
+    .prev-btn {
+      background: #e9ecef;
+      color: #dc3545 !important;
+      border: 1px solid #ddd;
+    }
+
+    .quiz-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #eee;
+      color: #666;
+      font-weight: bold;
+      font-size: 0.9rem;
+      flex-wrap: wrap;
+    }
+
+    .disclaimer-box {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fdfdfd;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      color: #888;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    .disclaimer-title {
+      display: block;
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+    }
+
+    .source-tag {
+      position: fixed;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.05);
+      color: #777;
+      padding: 5px 10px;
+      border-radius: 10px;
+      font-size: 0.72rem;
+      font-weight: bold;
+      z-index: 9999;
+    }
+
+    .reset-set-btn {
+      position: absolute;
+      top: 15px;
+      right: 20px;
+      background: #ffc107;
+      border: none;
+      padding: 8px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 0.8rem;
+      cursor: pointer;
+      z-index: 5;
+    }
+
+    @media (max-width: 480px) {
+      .quiz-container {
+        padding-top: 110px;
+      }
+
+      .header-info {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        padding-right: 104px;
+        align-items: flex-start;
+      }
+
+      .header-left {
+        display: block;
+        padding-right: 6px;
+      }
+
+      .main-menu-btn {
+        display: block;
+        font-size: 0.95rem;
+        padding: 0;
+        margin-bottom: 6px;
+      }
+
+      .header-subject {
+        display: block;
+        margin: 0;
+        font-size: 0.82rem;
+        line-height: 1.3;
+        max-width: 100%;
+      }
+
+      .question-title {
+        font-size: 1.05rem;
+      }
+
+      .option-btn {
+        font-size: 1rem;
+        padding: 14px;
+      }
+
+      .reset-set-btn {
+        top: 12px;
+        right: 12px;
+        font-size: 0.75rem;
+        padding: 7px 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div id="menuContainer" class="menu-container">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:20px;">
+      <h1 id="mainTitle" style="margin:0;">ortak alan</h1>
+      <button onclick="clearAllStatistics()" style="background:#dc3545; color:white; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; font-size:0.75rem;">
+        Verileri Sıfırla
+      </button>
+<button onclick="shuffleAllQuestions()" style="background:#28a745;color:white;border:none;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:0.75rem;">Soruları Karıştır</button>
+
+    </div>
+
+    <div id="menuGrid" class="menu-grid"></div>
+
+    <div class="disclaimer-box">
+      <span class="disclaimer-title">⚠️ Önemli Uyarı</span>
+      Bu sistemde yer alan içerikler yalnızca eğitim amaçlıdır. İçeriklerin kullanımından doğabilecek doğrudan veya dolaylı hiçbir sorumluluk kabul edilmez. Tüm kullanım sorumluluğu kullanıcıya aittir.
+    </div>
+  </div>
+
+  <div id="quizContainer" class="quiz-container">
+    <div class="progress-bar" id="progressBar"></div>
+
+    <div class="header-info">
+      <div class="header-left">
+        <button onclick="showMenu()" class="main-menu-btn">☰ Ana Menü</button>
+        <span id="headerSubject" class="header-subject"></span>
+      </div>
+    </div>
+
+    <button onclick="resetCurrentSet()" class="reset-set-btn">Seti Sıfırla</button>
+
+    <div id="retryBadge" class="retry-badge">Yalnış cevaplanan soru</div>
+    <h2 id="questionText" class="question-title">...</h2>
+
+    <div id="optionsArea"></div>
+
+    <div class="quiz-footer">
+      <div id="footerLeft">Kalan: 0</div>
+      <div id="footerRight">0 / 0</div>
+    </div>
+
+    <div id="explanationArea" class="explanation"></div>
+
+    <div class="nav-controls">
+      <button id="prevBtn" class="nav-btn prev-btn" onclick="goBack()" style="visibility:hidden;">❮ Önceki</button>
+      <button id="nextBtn" class="nav-btn next-btn" onclick="goForward()" style="visibility:hidden;">Yeni Soru ❯</button>
+    </div>
+  </div>
+</div>
+
+<div class="source-tag" id="sourceTag">Kaynak: yapayzeka/ balik_besleme_ve_yem_teknolojisi_versiyon_1</div>
+
+<script>
+  const BASE_SUBJECT = "Ortak Alan Karma Sınav";
+  const VERSION_NUMBER = 6;
+
+  function buildVersionName(base, version) {
+    return `${base} Versiyon ${version}`;
+  }
+
+  function buildVersionSlug(base, version) {
+    return `${base.toLowerCase().replace(/ç/g, "c").replace(/ğ/g, "g").replace(/ı/g, "i").replace(/ö/g, "o").replace(/ş/g, "s").replace(/ü/g, "u").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "")}_versiyon_${version}`;
+  }
+
+  const CURRENT_SUBJECT = BASE_SUBJECT;
+  const VERSION_SLUG = buildVersionSlug(BASE_SUBJECT, VERSION_NUMBER);
+  const SOURCE_TEXT = `Kaynak: Özel öğretici açıklamalı birleşik soru havuzu`; 
+  const QUESTIONS_PER_SET = 30;
+
+  const questions = [{"q": "Tarımsal Araştırmalar ve Politikalar Genel Müdürlüğü hangi hizmet birimi içinde sayılır?", "o": ["Adalet Bakanlığı hizmet birimleri", "İçişleri Bakanlığı hizmet birimleri", "Ticaret Bakanlığı hizmet birimleri", "Tarım ve Orman Bakanlığı hizmet birimleri"], "c": 3, "e": ""}, {"q": "Tarım ve Orman Bakanlığı Personeli Görevde Yükselme ve Unvan Değişikliği Yönetmeliğine göre sözlü sınavda başarılı sayılmak için en az kaç puan alınmalıdır?", "o": ["60", "65", "70", "75"], "c": 2, "e": ""}, {"q": "Güvenli elektronik imza ile imzalanan belgeler için hangisi doğrudur?", "o": ["Mutlaka çıktı alınarak ayrıca imzalanır", "Fiziksel ortamda saklanması zorunludur", "Çıktısı alınarak el yazısıyla yeniden imzalanmaz ve fiziksel ortamda saklanmaz", "Sadece arşivde kâğıt olarak geçerlidir"], "c": 2, "e": ""}, {"q": "Aşağıdakilerden hangisi Anayasa’nın 3. maddesinde yer almaz?", "o": ["Devletin dini İslam’dır", "Resmî dil Türkçedir", "Bayrak, beyaz ay yıldızlı al bayraktır", "Millî marş İstiklâl Marşı’dır"], "c": 0, "e": ""}, {"q": "Aylıktan kesme cezası, memurun brüt aylığından hangi oranlar arasında kesinti yapılmasıdır?", "o": ["1/100 - 1/50", "1/30 - 1/8", "1/5 - 1/2", "1/10 - 1/3"], "c": 1, "e": ""}, {"q": "Başvurusu reddedilen kişi, kararın tebliğinden itibaren kaç gün içinde Bilgi Edinme Değerlendirme Kuruluna itiraz edebilir?", "o": ["7 gün", "10 gün", "15 gün", "30 gün"], "c": 2, "e": ""}, {"q": "4634 sayılı Şeker Kanununda Bakanlığa verilen görevleri yerine getirmek hangi birimin görevidir?", "o": ["Tütün ve Alkol Dairesi Başkanlığı", "Şeker Dairesi Başkanlığı", "Tarım Reformu Genel Müdürlüğü", "Su Yönetimi Genel Müdürlüğü"], "c": 1, "e": ""}, {"q": "Anayasa’nın değiştirilemeyecek hükümleri hangi maddede düzenlenmiştir?", "o": ["5. madde", "4. madde", "6. madde", "3. madde"], "c": 1, "e": ""}, {"q": "Kamu kurum ve kuruluşlarının sahip oldukları su ile ilgili bilgi ve verileri, talep halinde su veri tabanına işlenmek üzere vermekle yükümlü oldukları birim hangisidir?", "o": ["Basın ve Halkla İlişkiler Müşavirliği", "Su Yönetimi Genel Müdürlüğü", "Tarımsal Araştırmalar ve Politikalar Genel Müdürlüğü", "Avrupa Birliği ve Dış İlişkiler Genel Müdürlüğü"], "c": 1, "e": ""}, {"q": "Bitkisel ürünlerde üretimi, verimliliği ve çeşitliliği artırmak hangi genel müdürlüğün görevidir?", "o": ["Bitkisel Üretim Genel Müdürlüğü", "Hayvancılık Genel Müdürlüğü", "Balıkçılık ve Su Ürünleri Genel Müdürlüğü", "Su Yönetimi Genel Müdürlüğü"], "c": 0, "e": ""}, {"q": "Bilgi Edinme Değerlendirme Kurulu itirazı kaç iş günü içinde sonuçlandırır?", "o": ["30 iş günü", "15 iş günü", "10 iş günü", "60 iş günü"], "c": 0, "e": ""}, {"q": "657 sayılı Devlet Memurları Kanunu’nun temel ilkeleri aşağıdakilerden hangisidir?", "o": ["Yetki genişliği, vesayet, hiyerarşi", "Sınıflandırma, kariyer, liyakat", "Eşitlik, gizlilik, tarafsızlık", "Disiplin, denetim, sicil"], "c": 1, "e": ""}, {"q": "Resmî yazışmaların esas yapılma şekli aşağıdakilerden hangisidir?", "o": ["e-Yazışma Teknik Rehberi’ne uygun elektronik ortamda ve güvenli elektronik imza ile", "Sadece faks yoluyla", "Sadece el yazısıyla", "Sadece sözlü talimatla"], "c": 0, "e": ""}, {"q": "Sözlü sınav puanı nasıl hesaplanır?", "o": ["Kurul başkanının verdiği puan esas alınır", "Yazılı puanın yarısı alınır", "Üyelerin verdiği puanların aritmetik ortalaması alınır", "Hizmet süresi eklenir"], "c": 2, "e": ""}, {"q": "Yazılı sınav sonuçlarının kesinleşmesinden sonra sözlü sınava gireceklerin listesi kaç iş günü içinde ilan edilir?", "o": ["3", "5", "10", "15"], "c": 1, "e": ""}, {"q": "Anayasa’ya göre temel hak ve hürriyetler hangi durumlarda sınırlandırılabilir?", "o": ["Belediye meclisi kararıyla", "Yalnızca idari emirle", "Anayasanın ilgili maddelerinde belirtilen sebeplere bağlı olarak ve kanunla", "Cumhurbaşkanı kararıyla sınırsız biçimde"], "c": 2, "e": ""}, , {"q": "4982 sayılı Kanun hangi kurumları kapsar?", "o": ["Yalnızca özel hukuk tüzel kişilerini", "Sadece mahkemeleri", "Kamu kurum ve kuruluşları ile kamu kurumu niteliğindeki meslek kuruluşlarını", "Sadece belediyeleri"], "c": 2, "e": ""}, {"q": "Cumhuriyetçilik ilkesi en çok aşağıdaki kavramlardan hangisiyle ilişkilidir?", "o": ["Milli egemenlik", "Devletçilik", "Laik hukuk", "Karma ekonomi"], "c": 0, "e": ""}, {"q": "“Memura, görevinde ve davranışlarında daha dikkatli olması gerektiğinin yazı ile bildirilmesi” hangi disiplin cezasıdır?", "o": ["Uyarma", "Kınama", "Aylıktan kesme", "Kademe ilerlemesinin durdurulması"], "c": 0, "e": ""}, {"q": "Bakanlık taşra teşkilatı kurmaya yetkili midir?", "o": ["Sadece Cumhurbaşkanı yardımcısı kurabilir", "Sadece valilikler kurabilir", "Hayır, yalnızca merkez teşkilatı kurabilir", "Evet, Bakanlık taşra teşkilatı kurmaya yetkilidir"], "c": 3, "e": ""}, {"q": "Devlet memurunun usulüne uygun şekilde görevinden ayrılma talebinde bulunması hangi genel hakla ilgilidir?", "o": ["Emeklilik", "Uygulamayı isteme", "Çekilme", "Dava açma"], "c": 2, "e": ""}, {"q": "Ticari sır niteliğindeki bilgi ve belgeler için doğru ifade hangisidir?", "o": ["Her zaman açıklanır", "Bilgi edinme hakkı kapsamı dışında kalabilir", "Sadece rakip firmalara verilir", "Kamu kurumlarında ticari sır olamaz"], "c": 1, "e": ""}, {"q": "Bakanlık personel politikası ve planlaması ile personel sisteminin geliştirilmesi konusunda çalışmalar yapmak hangi birimin görevidir?", "o": ["Gıda ve Kontrol Genel Müdürlüğü", "Tarım Reformu Genel Müdürlüğü", "Personel Genel Müdürlüğü", "Eğitim ve Yayın Dairesi Başkanlığı"], "c": 2, "e": ""}, {"q": "Bakanlığın bilişim hedeflerini belirlemek, bilişim standartlarını tespit etmek ve bilişim altyapısıyla ilgili işleri yürütmek hangi birimin görevidir?", "o": ["Tütün ve Alkol Dairesi Başkanlığı", "Bilgi Teknolojileri Genel Müdürlüğü", "Destek Hizmetleri Dairesi Başkanlığı", "Özel Kalem Müdürlüğü"], "c": 1, "e": ""}, {"q": "4982 sayılı Bilgi Edinme Hakkı Kanununa göre bilgi edinme hakkından kural olarak kimler yararlanabilir?", "o": ["Herkes", "Yalnızca kamu görevlileri", "Sadece milletvekilleri", "Sadece avukatlar"], "c": 0, "e": ""}, {"q": "Yasama yetkisi Anayasa’ya göre hangi organa aittir?", "o": ["Anayasa Mahkemesine", "Cumhurbaşkanına", "Türkiye Büyük Millet Meclisine", "Bakanlıklara"], "c": 2, "e": ""}, {"q": "“Unvan değişikliği” aşağıdakilerden hangisidir?", "o": ["Aynı kadroda çalışmaya devam etmek", "Mesleki veya teknik eğitim sonucu kazanılan unvanlara ilişkin görevlere atanmak", "Kurum dışı geçici görevlendirme", "Sadece merkez teşkilatı görevi"], "c": 1, "e": ""}, {"q": "Anayasa’ya göre özel hayatın gizliliği hangi hak kapsamındadır?", "o": ["Kişinin hakları ve ödevleri", "Sosyal güvenlik hakkı", "Siyasi hak", "Kamu hizmetine girme hakkı"], "c": 0, "e": ""}, {"q": "Aşağıdakilerden hangisi Devlet memurlarının genel haklarından biridir?", "o": ["Ticaret yapma hakkı", "Grev hakkı", "Hediye alma hakkı", "Güvenlik hakkı"], "c": 3, "e": ""}, {"q": "Bakanlık, görev alanına giren konularda hangi kişi ve kurumların katılımıyla geçici çalışma grupları oluşturabilir?", "o": ["Sadece üniversite öğrencileriyle", "Sadece il müdürleriyle", "Sadece Bakanlık personeliyle", "Diğer bakanlıklar, kamu kurumları, STK’lar, özel sektör temsilcileri ve uzmanların katılımıyla"], "c": 3, "e": ""}, {"q": "Kurumlar, Kurulun istediği bilgi veya belgeleri kaç iş günü içinde vermek zorundadır?", "o": ["5 iş günü", "15 iş günü", "30 iş günü", "45 iş günü"], "c": 1, "e": ""}, {"q": "Doktora öğrenimini bitiren personel için aşağıdakilerden hangisi doğrudur?", "o": ["Görevde yükselme sınavına girmek zorundadır", "Sadece taşra teşkilatında atanabilir", "Öğrenimle ihraz edilen görevlere sınavsız atanabilir", "Sadece merkez teşkilatına atanabilir"], "c": 2, "e": ""}, {"q": "Tarım ve Orman Bakanlığı Personeli Görevde Yükselme ve Unvan Değişikliği Yönetmeliğine göre yazılı sınavda başarılı sayılmak için en az kaç puan gerekir?", "o": ["50", "60", "70", "80"], "c": 1, "e": ""}, {"q": "Aşağıdakilerden hangisi bilgi edinme hakkı kapsamı dışında kalabilecek bilgilerden biridir?", "o": ["Kamuya açık mevzuat metinleri", "Devlet sırrına ilişkin bilgi ve belgeler", "Kurumun internet sitesinde yayımlanan duyurular", "Başvuru formu örnekleri"], "c": 1, "e": ""}, {"q": "Haberleşmenin gizliliğine ilişkin bilgi ve belgeler hakkında hangisi doğrudur?", "o": ["Her başvurana verilir", "Sadece elektronik ortamda açıklanır", "Bilgi edinme hakkı kapsamı dışında kalabilir", "Kurum isterse internet sitesinde yayımlar"], "c": 2, "e": ""}, {"q": "Bilgi edinme başvurusunda erişim için başvurandan hangi ücret istenebilir?", "o": ["Erişim maliyeti kadar ücret", "Kurumun belirlediği ceza ücreti", "Memur maaşı kadar ücret", "Her başvuru için yüksek maktu ücret"], "c": 0, "e": ""}, {"q": "1924 Anayasası’nda egemenliğin millete ait olması hangi ilkeyi güçlendirir?", "o": ["Cumhuriyetçilik", "Devletçilik", "Laiklik", "İnkılapçılık"], "c": 0, "e": ""}, {"q": "Bakanlık hizmetlerine ilişkin bilgi sistemleri ve projelerini yapmak/yaptırmak, veri akışı ve paylaşımını koordine etmek hangi birime aittir?", "o": ["Bilgi Teknolojileri Genel Müdürlüğü", "Personel Genel Müdürlüğü", "Avrupa Birliği ve Dış İlişkiler Genel Müdürlüğü", "Şeker Dairesi Başkanlığı"], "c": 0, "e": ""}, {"q": "Ormanların korunması, geliştirilmesi, işletilmesi, ıslahı ve bakımı konusunda politika oluşturma çalışmaları hangi kuruma aittir?", "o": ["Hazine ve Maliye Bakanlığına", "Ticaret Bakanlığına", "Tarım ve Orman Bakanlığına", "İçişleri Bakanlığına"], "c": 2, "e": ""}, {"q": "Kademe ilerlemesinin durdurulması cezası, fiilin ağırlık derecesine göre kaç yıl uygulanır?", "o": ["1-2 yıl", "2-4 yıl", "1-3 yıl", "3-5 yıl"], "c": 2, "e": ""}, {"q": "Tarım ve Orman Bakanlığı Personeli Görevde Yükselme ve Unvan Değişikliği Yönetmeliğine göre unvan değişikliği sınavı hangi yöntemle yapılır?", "o": ["Yazılı ve sözlü sınav", "Sadece sözlü sınav", "Hizmet süresi değerlendirmesi", "Kurul kararı"], "c": 0, "e": ""}, {"q": "Mülkiyet hakkı ile ilgili aşağıdakilerden hangisi doğrudur?", "o": ["Anayasa’da düzenlenmemiştir", "Hiçbir şekilde sınırlanamaz", "Kamu yararı amacıyla kanunla sınırlanabilir", "Sadece yabancılara tanınır"], "c": 2, "e": ""}, {"q": "Milletvekili seçilme yaşı Anayasa’ya göre kaçtır?", "o": ["18", "21", "25", "30"], "c": 0, "e": ""}, {"q": "“ACELE” veya “GÜNLÜDÜR” ibaresi belgede nasıl gösterilir?", "o": ["Sol alt köşede siyah renkle", "Sadece zarfın arkasında", "Yazı alanının sağ üst köşesinde kırmızı renkli olarak", "Sadece ek listesinde"], "c": 2, "e": ""}, {"q": "Yazılı sınava katılacaklara ilişkin listeye itiraz süresi kaç iş günüdür?", "o": ["2", "3", "5", "7"], "c": 2, "e": ""}, {"q": "4982 sayılı Kanun’un temel amacı nedir?", "o": ["Kamu personelinin disiplin işlemlerini düzenlemek", "Bilgi edinme hakkının kullanılmasına ilişkin esas ve usulleri düzenlemek", "Dilekçe hakkını tamamen kaldırmak", "Sadece arşiv belgelerini sınıflandırmak"], "c": 1, "e": ""}, {"q": "Bakanlık teşkilatının her türlü faaliyet ve işlemlerinin teftiş, inceleme ve soruşturma işlerini yürütmek hangi birimin görevidir?", "o": ["Strateji Geliştirme Başkanlığı", "Rehberlik ve Teftiş Başkanlığı", "Destek Hizmetleri Dairesi Başkanlığı", "Eğitim ve Yayın Dairesi Başkanlığı"], "c": 1, "e": ""}, {"q": "657’ye göre memurların haftalık çalışma süresi genel olarak kaç saattir?", "o": ["35", "40", "45", "50"], "c": 1, "e": ""}, , {"q": "Türkiye’de ikamet eden yabancılar bilgi edinme hakkından hangi şartla yararlanabilir?", "o": ["Hiçbir şart olmadan", "Sadece mahkeme kararıyla", "Sadece valilik izniyle", "Karşılıklılık ilkesi ve bilginin kendileriyle ilgili olması şartıyla"], "c": 3, "e": ""}, {"q": "Devlet memurunun siyasi partiye üye olamaması ve siyasi davranışlardan kaçınması hangi ilkenin sonucudur?", "o": ["Kariyer", "Liyakat", "Tarafsızlık ve devlete bağlılık", "Sınıflandırma"], "c": 2, "e": ""}, {"q": "Gıda üretimi, güvenliği ve güvenirliği Bakanlığın hangi kapsamdaki görevleri arasındadır?", "o": ["Yalnızca Özel Kalem Müdürlüğünün görevleri", "Genel görev ve yetkileri", "Sadece Strateji Geliştirme Başkanlığının görevleri", "Yalnızca Personel Genel Müdürlüğünün görevleri"], "c": 1, "e": ""}, {"q": "Türkiye Cumhuriyeti Anayasası’na göre egemenlik kime aittir?", "o": ["Yargı organlarına", "Cumhurbaşkanına", "Kayıtsız şartsız millete", "Türkiye Büyük Millet Meclisine"], "c": 2, "e": ""}, {"q": "“Görevde yükselme” aşağıdakilerden hangisini ifade eder?", "o": ["Aynı unvanda yer değiştirmeyi", "Alt göreve atanmayı", "Görevde yükselmeye tabi kadrolara yapılacak atamaları", "Geçici görevlendirmeyi"], "c": 2, "e": ""}, {"q": "Tarım ve Orman Bakanlığının teşkilatı hangi yapılardan oluşur?", "o": ["Merkez ve taşra teşkilatından", "Merkez, taşra ve yurt dışı teşkilatından", "Sadece taşra ve bağlı kuruluşlardan", "Sadece merkez teşkilatından"], "c": 1, "e": ""}, {"q": "Devlet memurları, Anayasa ve kanunlara sadakatle bağlı kalmak zorundadır. Bu yükümlülük hangi ödevle ilgilidir?", "o": ["Mal bildirimi", "Tarafsızlık", "Basına bilgi verme", "Sadakat"], "c": 3, "e": ""}, {"q": "Tarım ve Orman Bakanlığı Personeli Görevde Yükselme ve Unvan Değişikliği Yönetmeliğine göre görevde yükselme sınavı hangi aşamalardan oluşur?", "o": ["Yazılı ve sözlü sınav", "Sadece sözlü sınav", "Sadece uygulama sınavı", "Mülakatsız yazılı sınav"], "c": 0, "e": ""}, {"q": "Düşünce ve kanaat hürriyetiyle ilgili aşağıdakilerden hangisi Anayasa’ya uygundur?", "o": ["Düşünce açıklaması her durumda suçtur", "Yalnızca kamu görevlileri düşünce hürriyetine sahiptir", "Düşünce hürriyeti sadece seçim dönemlerinde geçerlidir", "Herkes düşünce ve kanaat hürriyetine sahiptir"], "c": 3, "e": ""}, {"q": "Bakanlık ihtiyaç duyduğu hallerde ve lüzum gördüğü merkezlerde kimin onayı ile döner sermayeli işletmeler kurabilir?", "o": ["Valinin onayı ile", "Personel Genel Müdürünün onayı ile", "Belediye başkanının onayı ile", "Bakanın onayı ile"], "c": 3, "e": ""}, {"q": "Tarım ve Orman Bakanlığı Personeli Görevde Yükselme ve Unvan Değişikliği Yönetmeliğine göre başarı puanlarının eşitliği halinde öncelik hangi kritere verilir?", "o": ["Hizmet süresi fazla olana", "Yaşı küçük olana", "Başvurusu erken olana", "Erkek personele"], "c": 0, "e": ""}, {"q": "Bilgi edinme başvurusu esas olarak nereye yapılır?", "o": ["Bilgi Edinme Değerlendirme Kuruluna", "İstenen bilgi veya belgenin bulunduğu kurum veya kuruluşa", "TBMM Başkanlığına", "Cumhuriyet savcılığına"], "c": 1, "e": ""}, , {"q": "Çalışma hakkı ve ödevi Anayasa’da hangi hak grubunda yer alır?", "o": ["Siyasi haklar", "Sosyal ve ekonomik haklar ve ödevler", "Değiştirilemez hükümler", "Kişinin hakları"], "c": 1, "e": ""}, {"q": "Sözlü sınava çağrılacak adaylar nasıl belirlenir?", "o": ["Hizmet süresine göre", "Yaş sırasına göre", "Yazılı sınav puanı en yüksek adaydan başlanarak", "Kura ile"], "c": 2, "e": ""}, {"q": "Tarım ve Orman Bakanlığı Personeli Görevde Yükselme ve Unvan Değişikliği Yönetmeliğine göre başarı puanı eşitliğinde ikinci kriter aşağıdakilerden hangisidir?", "o": ["Sicil notu", "Daha üst öğrenimi bitirmiş olmak", "Medeni durum", "Askerlik durumu"], "c": 1, "e": ""}, {"q": "Devlet memurluğundan çıkarma cezasının sonucu aşağıdakilerden hangisidir?", "o": ["Bir daha Devlet memurluğuna atanmamak üzere memurluktan çıkarılmak", "Bir ay maaş kesintisi yapılması", "Sadece görev yerinin değiştirilmesi", "Yazılı uyarı verilmesi"], "c": 0, "e": ""}, {"q": "“Hizmete Özel” gizlilik dereceli belgeler için doğru ifade hangisidir?", "o": ["Elektronik ortamda hazırlanır, kaydedilir, saklanır ve gönderilir", "Her zaman fiziksel ortamda hazırlanır", "Hiç kayıt altına alınmaz", "Sadece sözlü iletilir"], "c": 0, "e": ""}, {"q": "Aşağıdakilerden hangisi Tarım ve Orman Bakanlığının hizmet birimlerinden biridir?", "o": ["Gıda ve Kontrol Genel Müdürlüğü", "Ceza İşleri Genel Müdürlüğü", "Gümrükler Genel Müdürlüğü", "Nüfus ve Vatandaşlık İşleri Genel Müdürlüğü"], "c": 0, "e": ""}, {"q": "4982 sayılı Bilgi Edinme Hakkı Kanununa göre yapılacak bilgi edinme başvurularının etkin ve doğru sonuçlandırılması için gerekli tedbirleri almak hangi birimin görevidir?", "o": ["Destek Hizmetleri Dairesi Başkanlığı", "Su Yönetimi Genel Müdürlüğü", "Özel Kalem Müdürlüğü", "Basın ve Halkla İlişkiler Müşavirliği"], "c": 3, "e": ""}, {"q": "“Memura, görevinde ve davranışlarında kusurlu olduğunun yazı ile bildirilmesi” hangi disiplin cezasıdır?", "o": ["Uyarma", "Aylıktan kesme", "Devlet memurluğundan çıkarma", "Kınama"], "c": 3, "e": ""}, {"q": "Tarımsal Araştırmalar ve Politikalar Genel Müdürlüğü aşağıdakilerden hangisiyle en yakından ilgilidir?", "o": ["4982 başvurularının sonuçlandırılması", "Bakanın özel yazışmaları", "Tarımsal AR-GE, araştırma ve politika geliştirme", "Genel evrak ve arşiv hizmetleri"], "c": 2, "e": ""}, {"q": "Devletin ekonomik çıkarlarına ilişkin bilgi ve belgeler hangi durumda kapsam dışında kalabilir?", "o": ["Başvuru elektronik yapılmışsa", "Belge eski tarihliyse", "Devletin ekonomik çıkarlarına zarar verecek veya haksız rekabete yol açacaksa", "Başvuran vatandaş değilse"], "c": 2, "e": ""}, {"q": "Anayasa’ya göre kişi dokunulmazlığı, maddi ve manevi varlığı hangi hak grubuna girer?", "o": ["Siyasi haklar", "Kişinin hakları ve ödevleri", "Mali haklar", "Sosyal ve ekonomik haklar"], "c": 1, "e": ""}, {"q": "Sözlü sınava, ilan edilen kadro sayısının en fazla kaç katı aday çağrılır?", "o": ["İki katı", "Üç katı", "Dört katı", "Beş katı"], "c": 3, "e": ""}, {"q": "Balıkçı barınakları ve balıkçılık altyapı tesislerine ilişkin usul ve esasları belirlemek hangi birimin görevidir?", "o": ["Bilgi Teknolojileri Genel Müdürlüğü", "Özel Kalem Müdürlüğü", "Hayvancılık Genel Müdürlüğü", "Balıkçılık ve Su Ürünleri Genel Müdürlüğü"], "c": 3, "e": ""}, {"q": "Zorunlu hâl veya olağanüstü durumda el yazısıyla atılan imza hangi kalemle atılır?", "o": ["Kurşun kalemle", "Mavi renkli kalemle", "Kırmızı kalemle", "Siyah keçeli kalemle"], "c": 1, "e": ""}, {"q": "Başvurulan kurumda istenen bilgi yoksa kurum ne yapmalıdır?", "o": ["Başvuruyu reddedip kapatmalıdır", "Başvurana dava açmasını söylemelidir", "Hiç cevap vermemelidir", "Başvuruyu ilgili kuruma göndermeli ve başvurana bildirmelidir"], "c": 3, "e": ""}, {"q": "Bakanlık personelinin atama, nakil, terfi, emeklilik ve benzeri özlük işlemlerini yürütmek hangi birimin görevidir?", "o": ["Basın ve Halkla İlişkiler Müşavirliği", "Şeker Dairesi Başkanlığı", "Personel Genel Müdürlüğü", "Hukuk Hizmetleri Genel Müdürlüğü"], "c": 2, "e": ""}, {"q": "Hizmeti 1 yıldan 10 yıla kadar olan memurların yıllık izin süresi kural olarak kaç gündür?", "o": ["10", "15", "20", "30"], "c": 2, "e": ""}, {"q": "Tarım ve Orman Bakanlığı Personeli Görevde Yükselme ve Unvan Değişikliği Yönetmeliğinin temel amacı aşağıdakilerden hangisidir?", "o": ["Personelin maaş esaslarını belirlemek", "Bakanlık taşınmazlarını düzenlemek", "Liyakat ve kariyer ilkeleri çerçevesinde görevde yükselme ve unvan değişikliğine ilişkin usul ve esasları belirlemek", "Disiplin cezalarını düzenlemek"], "c": 2, "e": ""}, {"q": "Derece yükselmesi için aşağıdakilerden hangisi aranır?", "o": ["Mutlaka kurum değiştirmek", "Sadece yaş şartını doldurmak", "Sadece amirin sözlü onayı", "Üst dereceden boş kadronun bulunması ve gerekli şartların taşınması"], "c": 3, "e": ""}, {"q": "657’ye göre kamu hizmetleri hangi istihdam şekilleriyle gördürülür?", "o": ["Memur, sözleşmeli personel ve işçiler", "Memur, geçici personel ve stajyer", "Sadece memurlar", "Memur, danışman ve taşeron"], "c": 0, "e": ""}, {"q": "Bakanlık yurt dışı teşkilatı kurmaya yetkili midir?", "o": ["Evet, Bakanlık yurt dışı teşkilatı kurmaya yetkilidir", "Sadece belediyeler aracılığıyla kurabilir", "Hayır, yurt dışı teşkilatı kuramaz", "Sadece özel sektörle birlikte kurabilir"], "c": 0, "e": ""}, {"q": "Görevde yükselme veya unvan değişikliği suretiyle atanacak kadrolar sınavdan en az kaç gün önce ilan edilir?", "o": ["15 gün", "30 gün", "45 gün", "60 gün"], "c": 3, "e": ""}, {"q": "Adli soruşturma ve kovuşturmaya ilişkin bilgi ve belgeler hangi gerekçeyle verilmeyebilir?", "o": ["Başvuran kamu görevlisi değilse", "Başvuru dilekçesi uzun ise", "Kurumun iş yükü fazlaysa", "Yargılamanın görevini gereği gibi yerine getirmesini engelleyecekse"], "c": 3, "e": ""}, {"q": "Ulusal su yönetimini koordine etmek aşağıdakilerden hangisinin genel görevleri arasındadır?", "o": ["Tarım ve Orman Bakanlığı", "Milli Eğitim Bakanlığı", "Adalet Bakanlığı", "Ticaret Bakanlığı"], "c": 0, "e": ""}, {"q": "Resmî Yazışmalarda Uygulanacak Usul ve Esaslar Hakkında Yönetmeliknin temel amacı aşağıdakilerden hangisidir?", "o": ["Personel özlük haklarını belirlemek", "Resmî yazışmalara ilişkin kuralları belirleyerek bilgi-belge alışverişini hızlı, güvenli ve uygulama birliği içinde yürütmek", "Kamu ihalelerinin usulünü düzenlemek", "Disiplin işlemlerini yürütmek"], "c": 1, "e": ""}, {"q": "Görevde yükselme yazılı sınavı aşağıdakilerden hangisine yaptırılabilir?", "o": ["Sadece özel şirketlere", "ÖSYM, MEB veya yükseköğretim kurumlarından birine", "İl özel idaresine", "Belediyelere"], "c": 1, "e": ""}, {"q": "“Kanunlarda yazılı haller dışında Devlet memurunun memurluğuna son verilemez.” hükmü hangi genel hakkı ifade eder?", "o": ["Güvenlik", "Çekilme", "Sendika kurma", "Müracaat hakkı"], "c": 0, "e": ""}, {"q": "Yargı yetkisi Türk Milleti adına kimler tarafından kullanılır?", "o": ["Bakanlıklar", "Bağımsız ve tarafsız mahkemeler", "Valilikler", "Cumhurbaşkanı yardımcıları"], "c": 1, "e": ""}, {"q": "Tarım ve Orman Bakanlığı Personeli Görevde Yükselme ve Unvan Değişikliği Yönetmeliğine göre yazılı sınava başvuru süresi en az kaç iş günüdür?", "o": ["3", "5", "10", "15"], "c": 1, "e": ""}, {"q": "İdari soruşturmaya ilişkin bilgi ve belgeler hangi durumda kapsam dışında kalabilir?", "o": ["Başvuru kısa yazılmışsa", "Soruşturmanın güvenliğini veya kişilerin haklarını zedeleyecekse", "Başvuru posta yoluyla yapılmışsa", "Belge Türkçe ise"], "c": 1, "e": ""}, {"q": "Disiplin cezası verilmesini gerektiren fiil ve hallerin işlendiği tarihten itibaren en geç kaç yıl içinde ceza verilmezse disiplin cezası verme yetkisi zamanaşımına uğrar?", "o": ["6 ay", "1 yıl", "2 yıl", "5 yıl"], "c": 2, "e": ""}, {"q": "Aşağıdakilerden hangisi Cumhuriyetin nitelikleri arasında yer almaz?", "o": ["Demokratik devlet", "Laik devlet", "Sosyal hukuk devleti", "Sınıf egemenliğine dayalı devlet"], "c": 3, "e": ""}, {"q": "Tarım ve Orman Bakanlığı Personeli Görevde Yükselme ve Unvan Değişikliği Yönetmeliği aşağıdakilerden hangisini kapsar?", "o": ["İşçi statüsündeki personeli", "657 sayılı Kanuna tabi olup görevde yükselme veya unvan değişikliği suretiyle atanacak personeli", "Yalnız sözleşmeli personeli", "Geçici işçileri"], "c": 1, "e": ""}, {"q": "Devlet memurunun görevinden dolayı kendisine sağlanan menfaatleri kabul etmemesi hangi yasakla ilgilidir?", "o": ["Basına bilgi verme yasağı", "Grev yasağı", "Hediye alma ve menfaat sağlama yasağı", "Siyasi parti üyeliği yasağı"], "c": 2, "e": ""}, {"q": "Aşağıdakilerden hangisi bilgi veya belgeye erişim yollarından biridir?", "o": ["Kurum personelinin kişisel bilgisayarının teslimi", "Kurum arşivinin tamamen devri", "Gizli belgelerin sınırsız açıklanması", "Belgenin suretinin verilmesi veya incelenmesine imkân sağlanması"], "c": 3, "e": ""}, {"q": "4982 sayılı Bilgi Edinme Hakkı Kanununa göre başvurular en geç kaç iş günü içinde değerlendirilir?", "o": ["3 iş günü", "5 iş günü", "10 iş günü", "15 iş günü"], "c": 3, "e": ""}, {"q": "Bir belgede iki yetkili imza atacaksa üst unvan sahibinin imzası nerede yer alır?", "o": ["Solda", "Ortada", "Sağda", "Ek bölümünde"], "c": 2, "e": ""}, {"q": "Devlet memurunun, amirinden aldığı emri Anayasa, kanun veya yönetmelik hükümlerine aykırı görmesi halinde ilk yapması gereken nedir?", "o": ["Emri doğrudan yerine getirmek", "Görev yerini terk etmek", "Aykırılığı amirine bildirmek", "Basına açıklama yapmak"], "c": 2, "e": ""}, {"q": "Paraf bilgileri güvenli elektronik imza ile imzalanan belgelerde nerede tutulur?", "o": ["Belgenin üstverisinde", "Muhatap bölümünde", "Ek listesinde", "Dağıtım kısmında"], "c": 0, "e": ""}, {"q": "Memura, eşinin doğum yapması halinde verilen mazeret izni kaç gündür?", "o": ["5 gün", "7 gün", "8 gün", "10 gün"], "c": 3, "e": ""}, {"q": "Sınav Kurulu kaç üyeden oluşur?", "o": ["3", "5", "7", "9"], "c": 1, "e": ""}, {"q": "Belgeler hangi kâğıt boyutu dikkate alınarak hazırlanır?", "o": ["A3", "B5", "A5", "A4"], "c": 3, "e": ""}, {"q": "Devlet memurlarının basına, haber ajanslarına veya radyo-televizyon kurumlarına bilgi ya da demeç vermesi kural olarak kimin yetkisine bağlıdır?", "o": ["Her memurun kendi takdirine", "Yetkili amirin iznine", "Sendika temsilcisine", "İl genel meclisine"], "c": 1, "e": ""}, {"q": "Medeni Kanun’un kabulü aşağıdaki alanlardan hangisinde yapılan inkılaplardandır?", "o": ["Hukuk", "Askerî", "Dış politika", "Maliye"], "c": 0, "e": ""}, {"q": "Ulusal kalkınma planları doğrultusunda tarımsal araştırma ve geliştirme stratejilerini hazırlamak hangi birimin görevidir?", "o": ["Destek Hizmetleri Dairesi Başkanlığı", "Basın ve Halkla İlişkiler Müşavirliği", "Tarımsal Araştırmalar ve Politikalar Genel Müdürlüğü", "Personel Genel Müdürlüğü"], "c": 2, "e": ""}, {"q": "Özürsüz ve kesintisiz 3-9 gün göreve gelmemek hangi disiplin cezasını gerektirir?", "o": ["Devlet memurluğundan çıkarma", "Kademe ilerlemesinin durdurulması", "Uyarma", "Kınama"], "c": 1, "e": ""}, {"q": "Daha önce yayımlanmış veya kamuya açıklanmış bilgi ve belgeler için kurum ne yapabilir?", "o": ["Başvuruyu cezalandırabilir", "Bilginin nerede yayımlandığını başvurana bildirebilir", "Bilgiyi devlet sırrı sayabilir", "Başvurana bilgi vermeksizin işlemi sonlandırabilir"], "c": 1, "e": ""}, {"q": "1 sayılı Cumhurbaşkanlığı Kararnamesi’nin Onbeşinci Bölümü hangi bakanlığı düzenler?", "o": ["Ticaret Bakanlığı", "Tarım ve Orman Bakanlığı", "Adalet Bakanlığı", "Çevre, Şehircilik ve İklim Değişikliği Bakanlığı"], "c": 1, "e": ""}, {"q": "Kurum içi görüş, bilgi notu, teklif ve tavsiye niteliğindeki belgeler için aşağıdakilerden hangisi doğrudur?", "o": ["Kural olarak kapsam dışında tutulabilir", "Her durumda başvurana verilir", "Mutlaka mahkeme kararıyla açıklanır", "Sadece telefonla bildirilir"], "c": 0, "e": ""}, {"q": "Disiplin cezalarının amacı aşağıdakilerden hangisidir?", "o": ["Memurun sosyal haklarını artırmak", "Kamu hizmetinin düzenli ve güvenilir yürütülmesini sağlamak", "Memura ödül vermek", "Memuru göreve başlatmak"], "c": 1, "e": ""}, {"q": "Aşağıdakilerden hangisi toplumsal alanda yapılan inkılaplardan biridir?", "o": ["Saltanatın kaldırılması", "Şapka ve kıyafet düzenlemeleri", "Lozan Antlaşması", "TBMM’nin açılması"], "c": 1, "e": ""}, {"q": "Aşağıdakilerden hangisi 657 sayılı Kanun’da memurlar için getirilen yasaklardan biridir?", "o": ["Yıllık izin kullanmak", "Sendika kurmak", "Emeklilik istemek", "Ticaret ve diğer kazanç getirici faaliyetlerde bulunmak"], "c": 3, "e": ""}, , {"q": "Kadın memura doğumdan önce ve doğumdan sonra kural olarak verilen analık izni süresi aşağıdakilerden hangisidir?", "o": ["4 hafta önce, 4 hafta sonra", "6 hafta önce, 6 hafta sonra", "8 hafta önce, 8 hafta sonra", "10 hafta önce, 10 hafta sonra"], "c": 2, "e": ""}, {"q": "Tekke, zaviye ve türbelerin kapatılması aşağıdaki ilkelerden hangisiyle en yakından ilgilidir?", "o": ["Laiklik", "Devletçilik", "Cumhuriyetçilik", "Milliyetçilik"], "c": 0, "e": ""}, {"q": "Bakanlığın internet sayfaları, elektronik imza ve elektronik belge uygulamalarıyla ilgili teknik çalışmaları yapmak hangi birimin görevleri arasındadır?", "o": ["Gıda ve Kontrol Genel Müdürlüğü", "Rehberlik ve Teftiş Başkanlığı", "Tarım Reformu Genel Müdürlüğü", "Bilgi Teknolojileri Genel Müdürlüğü"], "c": 3, "e": ""}, {"q": "Özürsüz olarak bir veya iki gün göreve gelmemek hangi disiplin cezasını gerektirir?", "o": ["Uyarma", "Kınama", "Kademe ilerlemesinin durdurulması", "Aylıktan kesme"], "c": 3, "e": ""}, {"q": "Cumhurbaşkanı seçilebilmek için aranan şartlardan biri aşağıdakilerden hangisidir?", "o": ["En az kırk yaşını doldurmuş olmak", "En az otuz yaşını doldurmuş olmak", "Hâkim olmak", "Bakanlık yapmış olmak"], "c": 0, "e": ""}, {"q": "“GÜNLÜDÜR” ibaresi taşıyan belgelerde ne belirtilir?", "o": ["Belgeyi hazırlayanın izin durumu", "Cevap verilmesi gereken süre veya tarih", "Belgenin ek sayısı", "Paraf atanların listesi"], "c": 1, "e": ""}, {"q": "Hizmeti 10 yıldan fazla olan memurların yıllık izin süresi kural olarak kaç gündür?", "o": ["30", "20", "15", "10"], "c": 0, "e": ""}, {"q": "İnkılapçılık ilkesinin temel amacı aşağıdakilerden hangisidir?", "o": ["Eski kurumları aynen korumak", "Çağın gereklerine göre sürekli yenilenmek", "Saltanatı geri getirmek", "Kapalı ekonomi kurmak"], "c": 1, "e": ""}, {"q": "Fikir ve sanat eserlerine ilişkin bilgi ve belgelerde temel kural nedir?", "o": ["Telif hakkı tamamen ortadan kalkar", "Her eser ücretsiz çoğaltılır", "Eser sahibinin hakları yok sayılır", "İlgili mevzuattaki haklar korunur"], "c": 3, "e": ""}, {"q": "Kademe ilerlemesi için temel şartlardan biri aşağıdakilerden hangisidir?", "o": ["Bulunduğu kademede en az bir yıl çalışmış olmak", "En az beş yıl aynı kurumda çalışmak", "Bakan onayı almak", "Disiplin kurulundan izin almak"], "c": 0, "e": ""}, {"q": "İstihbarata ilişkin bilgi ve belgeler bakımından genel kural nedir?", "o": ["Bilgi edinme hakkı kapsamı dışında kalabilir", "Her durumda açıklanır", "Sadece basına verilir", "Yalnızca belediyelere açıklanır"], "c": 0, "e": ""}, {"q": "Aşağıdakilerden hangisi Atatürk ilkelerinin ortak hedeflerinden biridir?", "o": ["Çağdaş, bağımsız ve milli egemenliğe dayalı devlet düzeni kurmak", "Teokratik yönetimi güçlendirmek", "Hanedan egemenliğini sürdürmek", "Kapitülasyonları devam ettirmek"], "c": 0, "e": ""}, {"q": "Tarımsal ve kırsal kalkınma desteklerinin uygulanmasına ilişkin işlemleri yapmak hangi birimin görevleri arasındadır?", "o": ["Tarım Reformu Genel Müdürlüğü", "Personel Genel Müdürlüğü", "Su Yönetimi Genel Müdürlüğü", "Basın ve Halkla İlişkiler Müşavirliği"], "c": 0, "e": ""}, {"q": "Devlet memurlarının toplu olarak göreve gelmemeleri veya hizmeti yavaşlatmaları hangi yasak kapsamında değerlendirilir?", "o": ["Toplu eylem ve hareketlerde bulunma yasağı", "Hediye alma yasağı", "Gizli bilgileri açıklama yasağı", "Ticaret yasağı"], "c": 0, "e": ""}, {"q": "Resmî Yazışmalarda Uygulanacak Usul ve Esaslar Hakkında Yönetmelik hangi kurumları kapsar?", "o": ["Sadece bakanlıkları", "Sadece belediyeleri", "Sadece mahkemeleri", "Bütün kamu kurum ve kuruluşlarını"], "c": 3, "e": ""}, {"q": "Devlet memurlarının grev yapması ile ilgili aşağıdakilerden hangisi doğrudur?", "o": ["Kanunda yasaklanmıştır", "Her durumda serbesttir", "Sadece amir izniyle mümkündür", "Sadece hafta sonu yapılabilir"], "c": 0, "e": ""}, {"q": "Resmî Yazışmalarda Uygulanacak Usul ve Esaslar Hakkında Yönetmelikne göre yazı tipi ve punto için esas olan seçenek hangisidir?", "o": ["Calibri 10 veya Arial 9", "Times New Roman 14 veya Arial 13", "Times New Roman 12 veya Arial 11", "Courier New 12 veya Verdana 10"], "c": 2, "e": ""}, {"q": "Halifeliğin kaldırılması aşağıdaki ilkelerden hangisiyle en yakından ilgilidir?", "o": ["Devletçilik", "Laiklik", "Halkçılık", "Milliyetçilik"], "c": 1, "e": ""}, , {"q": "Medreselerin kapatılması ve eğitimin Millî Eğitim Bakanlığına bağlanması hangi düzenlemeyle gerçekleşmiştir?", "o": ["Kabotaj Kanunu", "Soyadı Kanunu", "Tevhid-i Tedrisat Kanunu", "Medeni Kanun"], "c": 2, "e": ""}, {"q": "Bilgi veya belgenin başka kurumdan sağlanması ya da birden fazla kurumu ilgilendirmesi halinde süre en fazla kaç iş gününe uzatılabilir?", "o": ["30 iş günü", "45 iş günü", "60 iş günü", "90 iş günü"], "c": 0, "e": ""}, {"q": "Aşağıdakilerden hangisi laik hukuk düzenine geçişin en önemli göstergelerinden biridir?", "o": ["Türk Medeni Kanunu’nun kabulü", "Aşar vergisinin kaldırılması", "Kabotaj Kanunu", "Ankara’nın başkent olması"], "c": 0, "e": ""}, {"q": "Zorunlu hâl veya olağanüstü durumda fiziksel hazırlanan belgeler için doğru ifade hangisidir?", "o": ["Paraflı nüshası idarede kalacak şekilde en az iki nüsha düzenlenir", "Tek nüsha hazırlanır ve muhataba gönderilir", "Hiç kayıt alınmaz", "Sadece elektronik ortamda saklanır"], "c": 0, "e": ""}, , {"q": "Birden fazla muhataba gönderilecek dağıtımlı belgelerin muhatap bölümüne ne yazılır?", "o": ["Tüm muhataplar tek tek yazılır", "DAĞITIM YERLERİNE", "Bilgi ve gereği", "Ek listesi"], "c": 1, "e": ""}, {"q": "2873 sayılı Millî Parklar Kanunu ile verilen görevleri yürütmek hangi birime aittir?", "o": ["Balıkçılık ve Su Ürünleri Genel Müdürlüğü", "Doğa Koruma ve Milli Parklar Genel Müdürlüğü", "Tarım Reformu Genel Müdürlüğü", "Şeker Dairesi Başkanlığı"], "c": 1, "e": ""}, {"q": "Kabotaj Kanunu aşağıdaki ilkelerden hangisiyle daha çok ilişkilidir?", "o": ["Milli bağımsızlık ve milliyetçilik", "Laiklik", "Halkçılık", "İnkılapçılık"], "c": 0, "e": ""}, {"q": "Özel hayatın gizliliği kapsamındaki bilgi ve belgeler için aşağıdakilerden hangisi doğrudur?", "o": ["Kişinin izni olmadıkça kapsam dışında kalabilir", "Her durumda açıklanır", "Sadece gazetecilere verilir", "Kamu kurumlarında özel hayat gizliliği olmaz"], "c": 0, "e": ""}, {"q": "Haberleşme hürriyetiyle ilgili aşağıdakilerden hangisi doğrudur?", "o": ["Haberleşme yalnızca kamu görevlileri için haktır", "Herkes haberleşme hürriyetine sahiptir", "Haberleşme hakkı Anayasa’da yer almaz", "Haberleşme hiçbir şekilde korunmaz"], "c": 1, "e": ""}, {"q": "Başvuru dilekçesinde aşağıdakilerden hangisinin bulunması gerekir?", "o": ["Başvuranın adı, soyadı, imzası ve adresi", "Noter onayı", "Mahkeme kararı", "Kurum amirinin ön izni"], "c": 0, "e": ""}, {"q": "5018 sayılı Kamu Malî Yönetimi ve Kontrol Kanunu kapsamındaki strateji geliştirme ve mali hizmetler görevleri hangi birime aittir?", "o": ["Balıkçılık ve Su Ürünleri Genel Müdürlüğü", "Personel Genel Müdürlüğü", "Strateji Geliştirme Başkanlığı", "Hukuk Hizmetleri Genel Müdürlüğü"], "c": 2, "e": ""}, {"q": "Çiftçi eğitimi, tarımsal yayım ve danışmanlık hizmetlerini yürütmek hangi birimin görevidir?", "o": ["Rehberlik ve Teftiş Başkanlığı", "Tarım Reformu Genel Müdürlüğü", "Eğitim ve Yayın Dairesi Başkanlığı", "Personel Genel Müdürlüğü"], "c": 2, "e": ""}, {"q": "Birden fazla ilgi bulunması halinde sıralama nasıl yapılır?", "o": ["Alfabetik sıraya göre", "En yeni tarihli olandan başlanarak", "Kurum önem sırasına göre", "Önceki tarihli olandan başlanarak tarih sırasına göre"], "c": 3, "e": ""}, {"q": "Vergi ödeviyle ilgili aşağıdakilerden hangisi doğrudur?", "o": ["Vergi oranları idarenin sözlü emriyle belirlenir", "Vergi yalnızca kamu görevlilerinden alınır", "Herkes kamu giderlerini karşılamak üzere mali gücüne göre vergi ödemekle yükümlüdür", "Vergi ödevi Anayasa’da yoktur"], "c": 2, "e": ""}, {"q": "Bakanın çalışma programını düzenlemek hangi birimin görevidir?", "o": ["Tütün ve Alkol Dairesi Başkanlığı", "Şeker Dairesi Başkanlığı", "Özel Kalem Müdürlüğü", "Personel Genel Müdürlüğü"], "c": 2, "e": ""}, {"q": "Konut dokunulmazlığına müdahale kural olarak hangi şartla mümkündür?", "o": ["Belediye duyurusuyla", "Her kamu görevlisinin sözlü emriyle", "Kanunda belirtilen usule uygun hâkim kararıyla", "Komşu şikâyetiyle"], "c": 2, "e": ""}, {"q": "Damızlık hayvan ithalat ve ihracatında teknik kriterleri belirlemek hangi birimin görevidir?", "o": ["Balıkçılık ve Su Ürünleri Genel Müdürlüğü", "Doğa Koruma ve Milli Parklar Genel Müdürlüğü", "Hayvancılık Genel Müdürlüğü", "Eğitim ve Yayın Dairesi Başkanlığı"], "c": 2, "e": ""}, {"q": "Saltanatın kaldırılmasının en temel gerekçesi aşağıdakilerden hangisidir?", "o": ["Çok partili hayata geçmek", "Ekonomide devletçilik uygulamak", "Milli egemenlik anlayışıyla bağdaşmaması", "Harf inkılabını kolaylaştırmak"], "c": 2, "e": ""}, {"q": "Rekabetçi tarım sektörünün oluşturulması, kırsal alanlarda yaşam kalitesinin ve ekonomik çeşitliliğin iyileştirilmesi için program hazırlamak hangi birimin görevidir?", "o": ["Hukuk Hizmetleri Genel Müdürlüğü", "Özel Kalem Müdürlüğü", "Tarımsal Araştırmalar ve Politikalar Genel Müdürlüğü", "Tarım Reformu Genel Müdürlüğü"], "c": 3, "e": ""}, {"q": "Rehberlik ve Teftiş Başkanlığı hangi makamın emri veya onayı üzerine görev yapar?", "o": ["Bakanın", "Cumhurbaşkanı yardımcısının", "Personel Genel Müdürünün", "Valinin"], "c": 0, "e": ""}, {"q": "Başarı sıralaması kesinleştikten sonra atamalar en geç ne kadar sürede yapılır?", "o": ["15 gün", "1 ay", "3 ay", "6 ay"], "c": 1, "e": ""}, {"q": "Elektronik başvurularda temel şart aşağıdakilerden hangisidir?", "o": ["Başvurunun sadece mesai saatinde yapılması", "Mutlaka posta yoluyla teyit edilmesi", "Kimlik ve imzanın veya kimlik bilgilerinin tespitine imkân vermesi", "Başvurunun avukat aracılığıyla yapılması"], "c": 2, "e": ""}, {"q": "Balıkçılık ve su ürünleri avcılığı ve yetiştiriciliği ile ilgili bilgi sistemi oluşturmak hangi hizmet biriminin görevidir?", "o": ["Balıkçılık ve Su Ürünleri Genel Müdürlüğü", "Destek Hizmetleri Dairesi Başkanlığı", "Gıda ve Kontrol Genel Müdürlüğü", "Tarım Reformu Genel Müdürlüğü"], "c": 0, "e": ""}, , {"q": "Tevhid-i Tedrisat Kanunu’nun temel amacı aşağıdakilerden hangisidir?", "o": ["Ekonomiyi millîleştirmek", "Ordunun siyasetten ayrılmasını sağlamak", "Eğitim ve öğretimde birliği sağlamak", "Çok partili sistemi kurmak"], "c": 2, "e": ""}, {"q": "Aşağıdakilerden hangisi milli egemenlik anlayışının doğrudan sonucudur?", "o": ["Saltanatın korunması", "Halkın yönetimde söz sahibi olması", "Kapitülasyonların sürdürülmesi", "Ümmetçi devlet anlayışı"], "c": 1, "e": ""}, {"q": "Aşağıdakilerden hangisi 1 sayılı CBK Onbeşinci Bölümde Bakanlığın hizmet birimi olarak sayılmıştır?", "o": ["Ceza ve Tevkifevleri Genel Müdürlüğü", "Milli Emlak Genel Müdürlüğü", "Doğa Koruma ve Milli Parklar Genel Müdürlüğü", "Karayolları Genel Müdürlüğü"], "c": 2, "e": ""}, {"q": "Muhatabı gerçek kişi olan yazışmalar hangi ifadelerle bitirilebilir?", "o": ["“Saygılarımla”, “İyi dileklerimle” veya “Bilgilerinize sunulur”", "Sadece “Rica ederim”", "Sadece “Arz ederim”", "“Gereğini emrederim”"], "c": 0, "e": ""}, {"q": "Aylıksız izinde bulunan personel için aşağıdakilerden hangisi doğrudur?", "o": ["Başvuramaz", "Yalnız yazılı sınava girer", "Başvurabilir ve sınava katılabilir", "Sadece sözlü sınava katılır"], "c": 2, "e": ""}, {"q": "Bakanlığın yabancı ülkeler ve uluslararası kuruluşlarla ilişkilerini yürütmek hangi birimin görevidir?", "o": ["Avrupa Birliği ve Dış İlişkiler Genel Müdürlüğü", "Personel Genel Müdürlüğü", "Şeker Dairesi Başkanlığı", "Özel Kalem Müdürlüğü"], "c": 0, "e": ""}, {"q": "Yedek aday sayısı en fazla ne kadar olabilir?", "o": ["Asıl aday sayısı kadar", "Asıl aday sayısının iki katı", "Kadro sayısının üç katı", "Sınırsız"], "c": 0, "e": ""}, {"q": "Yürütme yetkisi ve görevi aşağıdakilerden hangisine aittir?", "o": ["Cumhurbaşkanına", "TBMM Başkanına", "Danıştaya", "Sayıştaya"], "c": 0, "e": ""}, {"q": "İmza bölümü metnin bitiminden sonra nasıl düzenlenir?", "o": ["Sayfanın sol altına yazılır", "Konu bölümünün yanına yazılır", "Eklerden önce yazılmaz", "İki ila dört satır boşluk bırakılarak yazı alanının en sağında ortalanır"], "c": 3, "e": ""}, {"q": "İthal ve ihraç edilecek balıkçılık ve su ürünleri ile girdilerine ilişkin esasları belirlemek hangi birimin görevidir?", "o": ["Personel Genel Müdürlüğü", "Balıkçılık ve Su Ürünleri Genel Müdürlüğü", "Basın ve Halkla İlişkiler Müşavirliği", "Şeker Dairesi Başkanlığı"], "c": 1, "e": ""}, {"q": "Atatürk döneminde Türk Tarih Kurumu ve Türk Dil Kurumu’nun kurulması hangi ilkeyle en yakından ilgilidir?", "o": ["Milliyetçilik", "Devletçilik", "Laiklik", "Cumhuriyetçilik"], "c": 0, "e": ""}, {"q": "Din ve vicdan hürriyeti kapsamında aşağıdakilerden hangisi doğrudur?", "o": ["Kimse ibadete, dini ayin ve törenlere katılmaya zorlanamaz", "Herkes aynı dine mensup olmak zorundadır", "Din eğitimi tamamen yasaktır", "Devletin resmî dini vardır"], "c": 0, "e": ""}, {"q": "Cumhurbaşkanının görev süresi kaç yıldır?", "o": ["7 yıl", "4 yıl", "5 yıl", "6 yıl"], "c": 2, "e": ""}, {"q": "Hayvancılığı geliştirmek, teşvik etmek ve teşvik esaslarını belirlemek hangi birime aittir?", "o": ["Şeker Dairesi Başkanlığı", "Rehberlik ve Teftiş Başkanlığı", "Hayvancılık Genel Müdürlüğü", "Tarım Reformu Genel Müdürlüğü"], "c": 2, "e": ""}, {"q": "Kurumlar başvuruya kural olarak kaç iş günü içinde cevap verir?", "o": ["5 iş günü", "10 iş günü", "30 iş günü", "15 iş günü"], "c": 3, "e": ""}, {"q": "Tavsiye ve mütalaa talepleri bakımından doğru ifade hangisidir?", "o": ["Kurumlar her konuda hukuki danışmanlık vermek zorundadır", "Başvuran isterse kurum karar yerine geçecek görüş verir", "Kurumlar bilgi edinme yoluyla görüş, tavsiye veya mütalaa vermeye zorlanamaz", "Sadece avukatlar görüş isteyebilir"], "c": 2, "e": ""}, {"q": "Sendika kurma hakkı aşağıdakilerden hangisiyle ilgilidir?", "o": ["Devletin şekli", "Yasama yetkisi", "Sosyal ve ekonomik haklar", "Yargı bağımsızlığı"], "c": 2, "e": ""}, {"q": "Kiralama ve satın alma işleri, temizlik, güvenlik, aydınlatma, onarım ve taşıma gibi destek hizmetlerini yürütmek hangi birime aittir?", "o": ["Avrupa Birliği ve Dış İlişkiler Genel Müdürlüğü", "Personel Genel Müdürlüğü", "Destek Hizmetleri Dairesi Başkanlığı", "Doğa Koruma ve Milli Parklar Genel Müdürlüğü"], "c": 2, "e": ""}, {"q": "Halkçılık ilkesi aşağıdakilerden hangisini esas alır?", "o": ["Sınıf ve ayrıcalık üstünlüğünü", "Kanun önünde eşitliği", "Devletin tüm işletmeleri kapatmasını", "Yönetimin hanedan eliyle sürmesini"], "c": 1, "e": ""}, {"q": "Soyadı Kanunu’nun kabul edilmesi hangi amaçla daha çok ilgilidir?", "o": ["Toplumsal yaşamda düzen ve eşitlik sağlamak", "Saltanatı güçlendirmek", "Kapitülasyonları kaldırmak", "Çok partili hayatı başlatmak"], "c": 0, "e": ""}, {"q": "Milli parklar, tabiat parkları, tabiat anıtları ve sulak alanlarla ilgili işler hangi birimin görev alanındadır?", "o": ["Tütün ve Alkol Dairesi Başkanlığı", "Strateji Geliştirme Başkanlığı", "Personel Genel Müdürlüğü", "Doğa Koruma ve Milli Parklar Genel Müdürlüğü"], "c": 3, "e": ""}, {"q": "Türk vatandaşlığı ile ilgili aşağıdakilerden hangisi doğrudur?", "o": ["Vatandaşlık yalnızca doğum yerine göre belirlenir", "Vatandaşlık hakkı Anayasa’da düzenlenmemiştir", "Vatandaşlık sadece kamu görevlilerine tanınır", "Türk Devletine vatandaşlık bağı ile bağlı olan herkes Türktür"], "c": 3, "e": ""}, {"q": "Aşar vergisinin kaldırılması aşağıdaki alanlardan hangisiyle ilgilidir?", "o": ["Eğitim", "Tarım ve ekonomi", "Hukuk", "Dış politika"], "c": 1, "e": ""}, {"q": "Hatalı veya iptal edilen sorular için hangi işlem uygulanır?", "o": ["Sınav tamamen iptal edilir", "Soru değerlendirme dışı bırakılır", "İptal edilen soru bütün adaylar tarafından doğru cevaplanmış kabul edilir", "Sadece itiraz eden adaylara puan verilir"], "c": 2, "e": ""}, {"q": "Aşağıdakilerden hangisi sınava başvuramaz?", "o": ["Yıllık izinde bulunanlar", "Görevde bulunan memurlar", "Aday memurlar", "Kadrolu personel"], "c": 2, "e": ""}, {"q": "Kadınlara seçme ve seçilme hakkı verilmesi en çok hangi iki ilkeyle ilişkilidir?", "o": ["Halkçılık ve cumhuriyetçilik", "Devletçilik ve laiklik", "Milliyetçilik ve devletçilik", "İnkılapçılık ve devletçilik"], "c": 0, "e": ""}, {"q": "Süre belirtilmeyen bilgi ve görüş talepleri en geç kaç iş günü içinde yerine getirilir?", "o": ["3 iş günü", "5 iş günü", "10 iş günü", "15 iş günü"], "c": 3, "e": ""}, {"q": "Aşağıdakilerden hangisi Bakanlığın genel görevleri arasında yer alır?", "o": ["Gümrük işlemlerini yürütmek", "Milli savunma planlarını hazırlamak", "Adli yargı teşkilatını düzenlemek", "Bitkisel ve hayvansal üretim ile su ürünleri üretiminin geliştirilmesine yönelik araştırmalar yapmak"], "c": 3, "e": ""}, {"q": "Çayır, mera, yaylaklar ve kışlakların ıslah ve muhafazasını sağlamak hangi birimin görevleri arasında yer alır?", "o": ["Bitkisel Üretim Genel Müdürlüğü", "Basın ve Halkla İlişkiler Müşavirliği", "Destek Hizmetleri Dairesi Başkanlığı", "Avrupa Birliği ve Dış İlişkiler Genel Müdürlüğü"], "c": 0, "e": ""}, {"q": "659 sayılı Kanun Hükmünde Kararname hükümlerine göre hukuk birimlerine verilen görevleri yapmak hangi birime aittir?", "o": ["Hukuk Hizmetleri Genel Müdürlüğü", "Personel Genel Müdürlüğü", "Su Yönetimi Genel Müdürlüğü", "Tarım Reformu Genel Müdürlüğü"], "c": 0, "e": ""}, {"q": "Çok partili hayata geçiş denemeleri hangi ilkenin doğal sonucudur?", "o": ["Laiklik", "Devletçilik", "Cumhuriyetçilik", "Milliyetçilik"], "c": 2, "e": ""}, {"q": "Aşağıdakilerden hangisi Bakanlığın hizmet birimleri arasında yer almaz?", "o": ["Bitkisel Üretim Genel Müdürlüğü", "Hayvancılık Genel Müdürlüğü", "Tapu ve Kadastro Genel Müdürlüğü", "Balıkçılık ve Su Ürünleri Genel Müdürlüğü"], "c": 2, "e": ""}, {"q": "Sınav sonuçlarına itiraz süresi kaç iş günüdür?", "o": ["2", "3", "5", "7"], "c": 1, "e": ""}, {"q": "Milliyetçilik ilkesine göre millet anlayışı aşağıdakilerden hangisine dayanır?", "o": ["Mezhep üstünlüğüne", "Hanedan bağlılığına", "Ortak tarih, kültür ve kader birliğine", "Sınıf ayrımına"], "c": 2, "e": ""}, {"q": "Kurula itiraz edilmesi idari yargıya başvuru süresini nasıl etkiler?", "o": ["Süreyi tamamen kaldırır", "Süreyi iki katına çıkarır", "Süreyi durdurur", "Süreyi hiç etkilemez"], "c": 2, "e": ""}, {"q": "“Konu” bölümü için doğru ifade hangisidir?", "o": ["“Sayı” yan başlığının bir alt satırına yazılır, kısa ve öz olur, sonuna noktalama işareti konulmaz", "Muhatap bölümünden sonra yazılır", "Tamamı küçük harflerle yazılır", "Her zaman iki satırdan fazla yazılır"], "c": 0, "e": ""}, {"q": "Zorla çalıştırma yasağına göre aşağıdakilerden hangisi zorla çalıştırma sayılmaz?", "o": ["Angarya", "Kişinin ücret ödenmeden özel işte çalıştırılması", "Kamu görevlisinin keyfî emirle çalıştırılması", "Mahkûmların kanunda öngörülen çalıştırılması"], "c": 3, "e": ""}, {"q": "TBMM genel oyla seçilen kaç milletvekilinden oluşur?", "o": ["400", "450", "550", "600"], "c": 3, "e": ""}, {"q": "Arazi edindirme işlemlerini yapmak ve tarımsal arazilerin parçalanmasını önlemek hangi birimin görevidir?", "o": ["Tarım Reformu Genel Müdürlüğü", "Doğa Koruma ve Milli Parklar Genel Müdürlüğü", "Eğitim ve Yayın Dairesi Başkanlığı", "Hayvancılık Genel Müdürlüğü"], "c": 0, "e": ""}, {"q": "Bakanlığın genel evrak ve arşiv faaliyetlerini düzenlemek ve yürütmek hangi birimin görevleri arasındadır?", "o": ["Destek Hizmetleri Dairesi Başkanlığı", "Özel Kalem Müdürlüğü", "Bilgi Teknolojileri Genel Müdürlüğü", "Basın ve Halkla İlişkiler Müşavirliği"], "c": 0, "e": ""}, {"q": "Su kaynaklarının korunması, iyileştirilmesi ve kullanılmasına ilişkin politikaları belirlemek hangi birimin görevlerindendir?", "o": ["Su Yönetimi Genel Müdürlüğü", "Gıda ve Kontrol Genel Müdürlüğü", "Personel Genel Müdürlüğü", "Özel Kalem Müdürlüğü"], "c": 0, "e": ""}, {"q": "Tarih bölümü için doğru ifade hangisidir?", "o": ["Konu bölümünün altında yazılır", "Sadece ay adı harfle yazılır", "Sayı ile aynı satırda, yazı alanının en sağında gün/ay/yıl şeklinde yazılır", "Belgenin sonunda yer alır"], "c": 2, "e": ""}, {"q": "Süre uzatılması halinde başvuru sahibine nasıl bildirim yapılır?", "o": ["Süre dolmadan önce gerekçesiyle birlikte yazılı olarak", "Sadece sözlü olarak", "Yalnızca dava açılırsa", "Bildirim yapılmasına gerek yoktur"], "c": 0, "e": ""}, {"q": "Kadroların tespiti, ihdası, kullanımı ve iptali hangi mevzuat hükümlerine göre düzenlenir?", "o": ["4982 sayılı Kanun", "Resmî Yazışmalar Yönetmeliği", "Genel Kadro ve Usulü Hakkında Cumhurbaşkanlığı Kararnamesi", "Dilekçe Hakkının Kullanılmasına Dair Kanun"], "c": 2, "e": ""}, {"q": "Bakanlığın görev alanına giren konularda görsel, işitsel ve yazılı dokümanların basım ve yayımını yapmak veya yaptırmak hangi birimin görevidir?", "o": ["Şeker Dairesi Başkanlığı", "Strateji Geliştirme Başkanlığı", "Hukuk Hizmetleri Genel Müdürlüğü", "Eğitim ve Yayın Dairesi Başkanlığı"], "c": 3, "e": ""}, {"q": "“Sayı” bölümü aşağıdaki unsurlardan hangilerini içerir?", "o": ["Sadece kayıt numarası", "E/Z/O ibaresi, DETSİS numarası, standart dosya planı kodu ve kayıt numarası", "Sadece tarih ve konu", "Sadece birim adı"], "c": 1, "e": ""}, {"q": "Konusu suç teşkil eden emir hakkında aşağıdakilerden hangisi doğrudur?", "o": ["Yazılı verilirse yerine getirilir", "Hiçbir suretle yerine getirilmez", "Amir ısrar ederse uygulanır", "Sonradan şikâyet edilirse uygulanabilir"], "c": 1, "e": ""}, {"q": "Aşağıdakilerden hangisi laiklik ilkesinin sonucudur?", "o": ["Din ve devlet işlerinin ayrılması", "Devletin ekonomiye hiç karışmaması", "Sadece tek parti yönetimi", "Saltanatın güçlendirilmesi"], "c": 0, "e": ""}, {"q": "Türkiye Devleti’nin şekli aşağıdakilerden hangisidir?", "o": ["Meşruti monarşi", "Cumhuriyet", "Konfederasyon", "Federal devlet"], "c": 1, "e": ""}, {"q": "Bakanlığın Avrupa Birliği ile ilgili müzakere hazırlıkları ve uyum çalışmalarında koordinasyon görevi hangi birime aittir?", "o": ["Destek Hizmetleri Dairesi Başkanlığı", "Avrupa Birliği ve Dış İlişkiler Genel Müdürlüğü", "Bilgi Teknolojileri Genel Müdürlüğü", "Rehberlik ve Teftiş Başkanlığı"], "c": 1, "e": ""}, {"q": "Aşağıdakilerden hangisi temel hak ve hürriyetlerin sınırlandırılmasında uyulması gereken ölçütlerden biridir?", "o": ["Keyfî sınırlama yapılabilmek", "Hakların tamamen ortadan kaldırılması", "Yargı denetiminin kapatılması", "Ölçülülük ilkesine aykırı olmamak"], "c": 3, "e": ""}, {"q": "Dağıtım bölümünde “Gereği” ve “Bilgi” ayrımı için doğru ifade hangisidir?", "o": ["İkisi de aynı anlama gelir", "“Bilgi” kısmına işlem yapacaklar yazılır", "“Gereği” kısmına işlem yapacaklar, “Bilgi” kısmına bilgi sahibi olması istenenler yazılır", "Sadece üst makamlara “Bilgi” yazılır"], "c": 2, "e": ""}, {"q": "Harf İnkılabı’nın temel amacı aşağıdakilerden hangisidir?", "o": ["Ekonomiyi devletleştirmek", "Okuma yazmayı kolaylaştırmak ve çağdaşlaşmayı hızlandırmak", "Saltanatı kaldırmak", "Ordunun siyasetten ayrılmasını sağlamak"], "c": 1, "e": ""}, {"q": "Kooperatif, birlik ve diğer üretici örgütlerinin kurulmasına izin vermek ve bunları denetlemek hangi birimin görev alanındadır?", "o": ["Bilgi Teknolojileri Genel Müdürlüğü", "Gıda ve Kontrol Genel Müdürlüğü", "Tarım Reformu Genel Müdürlüğü", "Şeker Dairesi Başkanlığı"], "c": 2, "e": ""}, {"q": "Gıda güvenilirliği ve gıda kontrolüne ilişkin görevler esas olarak hangi birimin görev alanındadır?", "o": ["Bitkisel Üretim Genel Müdürlüğü", "Gıda ve Kontrol Genel Müdürlüğü", "Personel Genel Müdürlüğü", "Özel Kalem Müdürlüğü"], "c": 1, "e": ""}, {"q": "Lozan Antlaşması’nın en önemli sonucu aşağıdakilerden hangisidir?", "o": ["Türkiye’nin bağımsızlığının uluslararası alanda tanınması", "Saltanatın geri gelmesi", "Halifeliğin güçlenmesi", "Kapitülasyonların genişletilmesi"], "c": 0, "e": ""}, {"q": "Eğitim ve öğrenim hakkı ve ödeviyle ilgili aşağıdakilerden hangisi doğrudur?", "o": ["İlköğretim kız ve erkek bütün vatandaşlar için zorunludur", "Eğitim hakkı yalnızca yetişkinlere tanınır", "Devlet eğitim alanında görev almaz", "Öğrenim hakkı temel hak değildir"], "c": 0, "e": ""}, {"q": "Aşağıdakilerden hangisi siyasi alanda yapılan inkılaplardan biridir?", "o": ["Soyadı Kanunu", "Harf İnkılabı", "Cumhuriyetin ilanı", "Medeni Kanun"], "c": 2, "e": ""}, {"q": "Kamu hizmetlerine girme hakkı ile ilgili temel ölçüt aşağıdakilerden hangisidir?", "o": ["Sadece erkek vatandaşların alınması", "Görevin gerektirdiği niteliklerden başka ayrım gözetilmemesi", "Siyasi görüşe göre atama yapılması", "Sadece belirli ailelerden gelenlerin alınması"], "c": 1, "e": ""}, {"q": "Devletçilik ilkesi aşağıdakilerden hangisini ifade eder?", "o": ["Devletin ekonomik kalkınmada düzenleyici ve öncü rol üstlenmesi", "Devletin dinî kurallarla yönetilmesi", "Bütün siyasi partilerin kapatılması", "Yerel yönetimlerin kaldırılması"], "c": 0, "e": ""}, {"q": "Şeriye ve Evkâf Vekâleti’nin kaldırılması hangi ilkeyle daha çok ilgilidir?", "o": ["Laiklik", "Devletçilik", "Cumhuriyetçilik", "Milliyetçilik"], "c": 0, "e": ""}, {"q": "Ankara’nın başkent yapılmasının en önemli gerekçelerinden biri aşağıdakilerden hangisidir?", "o": ["İstanbul’a bağlılığı artırmak", "Yeni devletin bağımsız ve millî merkezini oluşturmak", "Halifeliği güçlendirmek", "Saltanatı korumak"], "c": 1, "e": ""}, {"q": "Hayvancılıkla ilgili bilgi sistemi oluşturmak hangi birimin görevleri arasındadır?", "o": ["Hayvancılık Genel Müdürlüğü", "Şeker Dairesi Başkanlığı", "Hukuk Hizmetleri Genel Müdürlüğü", "Tütün ve Alkol Dairesi Başkanlığı"], "c": 0, "e": ""}, {"q": "4733, 4250 ve 4207 sayılı kanunlarla Bakanlığa verilen görevleri yerine getirmek hangi birimin görev alanındadır?", "o": ["Gıda ve Kontrol Genel Müdürlüğü", "Özel Kalem Müdürlüğü", "Şeker Dairesi Başkanlığı", "Tütün ve Alkol Dairesi Başkanlığı"], "c": 3, "e": ""}, {"q": "Başarı puanı nasıl belirlenir?", "o": ["Yazılı ve sözlü puan ortalaması alınarak", "Sadece yazılı puana göre", "Sadece sözlü puana göre", "Hizmet yılına göre"], "c": 0, "e": ""}, {"q": "Erkân-ı Harbiye Vekâleti’nin kaldırılmasıyla hedeflenen temel amaç nedir?", "o": ["Ordunun siyasetten ayrılması", "Ekonomide devletçilik", "Eğitimde birlik", "Harf inkılabı"], "c": 0, "e": ""}, {"q": "Bakanın resmî ve özel yazışmaları, protokol ve tören işlerini düzenlemek ve yürütmek hangi birime aittir?", "o": ["Rehberlik ve Teftiş Başkanlığı", "Özel Kalem Müdürlüğü", "Hukuk Hizmetleri Genel Müdürlüğü", "Basın ve Halkla İlişkiler Müşavirliği"], "c": 1, "e": ""}, {"q": "Kanun teklif etmeye kimler yetkilidir?", "o": ["Bakanlar", "Milletvekilleri", "Valiler", "Cumhurbaşkanı yardımcıları"], "c": 1, "e": ""}, {"q": "Seçme, seçilme ve siyasi faaliyette bulunma hakları hangi hak grubundadır?", "o": ["Siyasi haklar ve ödevler", "Kişinin hakları", "Sosyal haklar", "Ekonomik haklar"], "c": 0, "e": ""}, {"q": "Personel, şartlarını taşıdığı farklı unvanlı kadrolardan kaç tanesine başvurabilir?", "o": ["Sadece birine", "İkisine", "Üçüne", "Sınırsız"], "c": 0, "e": ""}, {"q": "Başlık/antet bölümünün yazımında esas alınacak sistem aşağıdakilerden hangisidir?", "o": ["MERSİS", "MERNİS", "UYAP", "DETSİS"], "c": 3, "e": ""}, {"q": "Sınav sonuçlarına yapılan itirazlar en geç kaç iş günü içinde sonuçlandırılır?", "o": ["3", "5", "10", "15"], "c": 1, "e": ""}, {"q": "Ayrı veya özel çalışma, araştırma, inceleme ya da analiz gerektiren başvurular için aşağıdakilerden hangisi doğrudur?", "o": ["Kurum mutlaka yeni rapor hazırlamak zorundadır", "Başvuru sahibi kuruma araştırma yaptırabilir", "Bu tür talepler bilgi edinme hakkı kapsamında değerlendirilmeyebilir", "Kurum her başvuruda bilirkişi görevlendirir"], "c": 2, "e": ""}, {"q": "Makamlar arası yazışmalarda metnin sonu için doğru kullanım hangisidir?", "o": ["Alt makama “arz ederim”, üst makama “rica ederim”", "Her zaman “saygılarımla”", "Alt makama “rica ederim”, üst ve aynı düzey makama “arz ederim”", "Her zaman “arz ve rica ederim”"], "c": 2, "e": ""}, {"q": "Yüksek vasıflı hayvan ırklarını yaygınlaştırmak hangi birimin görevleri arasındadır?", "o": ["Gıda ve Kontrol Genel Müdürlüğü", "Personel Genel Müdürlüğü", "Strateji Geliştirme Başkanlığı", "Hayvancılık Genel Müdürlüğü"], "c": 3, "e": ""}, {"q": "Denizlerde ve iç sularda sürdürülebilir balıkçılık ve su ürünleri yetiştiriciliği ile avcılığının esaslarını belirlemek hangi birime aittir?", "o": ["Personel Genel Müdürlüğü", "Balıkçılık ve Su Ürünleri Genel Müdürlüğü", "Tarım Reformu Genel Müdürlüğü", "Bitkisel Üretim Genel Müdürlüğü"], "c": 1, "e": ""}, {"q": "Atatürkçü düşünce sisteminde “akıl ve bilim rehberliğinde çağdaşlaşma” en çok hangi ilkeyle ilişkilidir?", "o": ["Milliyetçilik", "İnkılapçılık", "Devletçilik", "Halkçılık"], "c": 1, "e": ""}];;
+
+  document.getElementById("mainTitle").textContent = `${BASE_SUBJECT} Deneme Sınavı`;
+  document.getElementById("headerSubject").textContent = BASE_SUBJECT;
+  document.getElementById("sourceTag").textContent = SOURCE_TEXT;
+  document.title = `${BASE_SUBJECT} Deneme Sınavı`;
+
+  if (performance.navigation.type === performance.navigation.TYPE_RELOAD || !sessionStorage.getItem("session_active")) {
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith(storagePrefix())) localStorage.removeItem(k);
+    });
+    sessionStorage.setItem("session_active", "true");
+  }
+
+  let currentQuestions = [];
+  let currentIndex = 0;
+  let solvedIndex = -1;
+  let userAnswers = {};
+  let currentSetKey = "";
+  let stats = { correct: 0, wrong: 0 };
+  let wrongQuestionsMode = false;
+
+  function storagePrefix() {
+    return "exam_" + CURRENT_SUBJECT.replace(/\s+/g, "_") + "_";
+  }
+
+  function setStateKey(index) {
+    return storagePrefix() + "state_set_" + index;
+  }
+
+  function wrongQuestionsKey() {
+    return storagePrefix() + "wrong_questions_pool";
+  }
+
+  function getWrongQuestionsPool() {
+    return JSON.parse(localStorage.getItem(wrongQuestionsKey()) || "[]");
+  }
+
+  function saveWrongQuestionsPool(pool) {
+    localStorage.setItem(wrongQuestionsKey(), JSON.stringify(pool));
+  }
+
+  function addWrongQuestionToPool(question) {
+    const pool = getWrongQuestionsPool();
+
+    const exists = pool.some(item =>
+      item.q === question.q &&
+      JSON.stringify(item.o) === JSON.stringify(question.o)
+    );
+
+    if (!exists) {
+      pool.push({
+        q: question.q,
+        o: [...question.o],
+        c: question.c,
+        e: question.e || ""
+      });
+      saveWrongQuestionsPool(pool);
+    }
+  }
+
+  function normalizeQuestion(q, originalIndex) {
+    return {
+      id: q.id || ("q_" + originalIndex + "_" + Math.random().toString(36).slice(2, 8)),
+      originalNo: originalIndex + 1,
+      q: q.q,
+      o: [...q.o],
+      c: q.c,
+      e: q.e || "",
+      isRetry: q.isRetry || false,
+      retryFrom: q.retryFrom || null,
+      retryCount: q.retryCount || 0,
+      answeredCorrectly: q.answeredCorrectly || false
+    };
+  }
+
+  function initMenu() {
+    const menuGrid = document.getElementById("menuGrid");
+    menuGrid.innerHTML = "";
+
+    const totalSets = Math.ceil(questions.length / QUESTIONS_PER_SET);
+
+    let setsPerButton = 1;
+    let buttonCount = totalSets;
+
+    if (buttonCount > 10) {
+      setsPerButton = 2;
+      buttonCount = Math.ceil(totalSets / setsPerButton);
+    }
+
+    buttonCount = Math.min(buttonCount, 10);
+
+    for (let i = 0; i < buttonCount; i++) {
+      const startSetNo = i * setsPerButton + 1;
+      const endSetNo = Math.min(startSetNo + setsPerButton - 1, totalSets);
+
+      const start = (startSetNo - 1) * QUESTIONS_PER_SET;
+      const end = Math.min(endSetNo * QUESTIONS_PER_SET, questions.length);
+
+      if (start >= questions.length) continue;
+
+      const key = setStateKey(i);
+
+      const saved = JSON.parse(localStorage.getItem(key) || "null");
+      const solved = saved ? Object.keys(saved.userAnswers || {}).length : 0;
+      const correct = saved?.stats?.correct || 0;
+      const wrong = saved?.stats?.wrong || 0;
+
+      const totalCurrent = saved?.currentQuestions?.length || (end - start);
+      const isCompleted = saved ? (solved >= totalCurrent && totalCurrent > 0) : false;
+
+      const label = startSetNo === endSetNo
+        ? `Deneme-${startSetNo} (${BASE_SUBJECT})`
+        : `Deneme-${startSetNo}-${endSetNo} (${BASE_SUBJECT})`;
+
+      const btn = document.createElement("button");
+      btn.className = `menu-btn ${isCompleted ? "locked" : ""}`;
+      btn.innerHTML = `
+        <strong>${label}</strong><br>
+        <small>${end - start} Soru | Çözülen ${solved} (Doğru ${correct} Yanlış ${wrong})</small>
+      `;
+
+      if (!isCompleted) {
+        btn.onclick = () => startSet(i, key, start, end);
+      }
+
+      menuGrid.appendChild(btn);
+    }
+
+    const wrongPool = getWrongQuestionsPool();
+
+    if (wrongPool.length > 0) {
+      const wrongBtn = document.createElement("button");
+      wrongBtn.className = "wrong-menu-btn";
+      wrongBtn.innerHTML = `
+        <strong>Yanlış Yapılan Sorular</strong><br>
+        <small>${wrongPool.length} Soru | Yeniden çöz</small>
+      `;
+      wrongBtn.onclick = openWrongQuestions;
+      menuGrid.appendChild(wrongBtn);
+    }
+  }
+
+  function openWrongQuestions() {
+    const pool = getWrongQuestionsPool();
+    if (!pool.length) return;
+
+    wrongQuestionsMode = true;
+    currentSetKey = storagePrefix() + "wrong_questions_state";
+
+    const saved = JSON.parse(localStorage.getItem(currentSetKey) || "null");
+
+    if (saved) {
+      currentQuestions = saved.currentQuestions;
+      currentIndex = saved.currentIndex;
+      solvedIndex = saved.solvedIndex;
+      userAnswers = saved.userAnswers || {};
+      stats = saved.stats || { correct: 0, wrong: 0 };
+    } else {
+      currentQuestions = pool.map((q, i) => ({
+        id: "wrong_" + i + "_" + Math.random().toString(36).slice(2, 8),
+        originalNo: i + 1,
+        q: q.q,
+        o: [...q.o],
+        c: q.c,
+        e: q.e || "",
+        isRetry: false,
+        retryFrom: null,
+        retryCount: 0,
+        answeredCorrectly: false
+      }));
+
+      currentIndex = 0;
+      solvedIndex = -1;
+      userAnswers = {};
+      stats = { correct: 0, wrong: 0 };
+      saveState();
+    }
+
+    document.getElementById("menuContainer").style.display = "none";
+    document.getElementById("quizContainer").style.display = "block";
+    document.getElementById("headerSubject").textContent = "Yanlış Yapılan Sorular";
+    loadQuestion();
+    window.scrollTo(0, 0);
+  }
+
+  function startSet(idx, key, start, end) {
+    wrongQuestionsMode = false;
+    currentSetKey = key;
+
+    const saved = JSON.parse(localStorage.getItem(key) || "null");
+
+    if (saved) {
+      currentQuestions = saved.currentQuestions;
+      currentIndex = saved.currentIndex;
+      solvedIndex = saved.solvedIndex;
+      userAnswers = saved.userAnswers || {};
+      stats = saved.stats || { correct: 0, wrong: 0 };
+    } else {
+      currentQuestions = questions.slice(start, end).map((q, i) => normalizeQuestion(q, start + i));
+      currentIndex = 0;
+      solvedIndex = -1;
+      userAnswers = {};
+      stats = { correct: 0, wrong: 0 };
+      saveState();
+    }
+
+    document.getElementById("menuContainer").style.display = "none";
+    document.getElementById("quizContainer").style.display = "block";
+    document.getElementById("headerSubject").textContent = BASE_SUBJECT;
+    loadQuestion();
+    window.scrollTo(0, 0);
+  }
+
+  function getQuestionTitle(q) {
+    const cleanQ = String(q.q || "").replace(/^\s*Soru-\d+\s*:\s*/i, "");
+    return `Soru-${q.originalNo} : ${cleanQ}`;
+  }
+
+  function loadQuestion() {
+    const q = currentQuestions[currentIndex];
+    const progress = ((currentIndex + 1) / currentQuestions.length) * 100;
+
+    document.getElementById("progressBar").style.width = progress + "%";
+    document.getElementById("footerLeft").textContent = `Kalan: ${Math.max(currentQuestions.length - (currentIndex + 1), 0)}`;
+    document.getElementById("footerRight").textContent = `${currentIndex + 1} / ${currentQuestions.length}`;
+    document.getElementById("questionText").textContent = getQuestionTitle(q);
+
+    const retryBadge = document.getElementById("retryBadge");
+    retryBadge.style.display = q.isRetry ? "block" : "none";
+
+    const optArea = document.getElementById("optionsArea");
+    const expArea = document.getElementById("explanationArea");
+    optArea.innerHTML = "";
+    expArea.style.display = "none";
+    expArea.innerHTML = "";
+
+    const letters = ["A", "B", "C", "D", "E"];
+
+    q.o.forEach((opt, idx) => {
+      const btn = document.createElement("button");
+      btn.className = "option-btn";
+      btn.innerHTML = `<strong>${letters[idx]})</strong> ${opt}`;
+
+      if (currentIndex <= solvedIndex) {
+        btn.disabled = true;
+        const userChoice = userAnswers[currentIndex];
+
+        if (idx === userChoice) {
+          if (userChoice === q.c) {
+            btn.classList.add("correct");
+            btn.innerHTML += ` <span class="tick show">✔</span>`;
+          } else {
+            btn.classList.add("wrong");
+          }
+        }
+
+        if (wrongQuestionsMode) {
+          if (idx === q.c) {
+            btn.classList.add("correct");
+            btn.innerHTML += ` <span class="tick show">✔</span>`;
+          }
+          expArea.innerHTML = `<strong>Açıklama:</strong> ${String(q.e || "").replace(/^\s*Açıklama\s*:\s*/i, "")}`;
+          expArea.style.display = "block";
+        } else {
+          if (idx === q.c) {
+            btn.classList.add("correct");
+            if (!btn.innerHTML.includes("tick")) {
+              btn.innerHTML += ` <span class="tick show">✔</span>`;
+            }
+          }
+          expArea.innerHTML = `<strong>Açıklama:</strong> ${String(q.e || "").replace(/^\s*Açıklama\s*:\s*/i, "")}`;
+          expArea.style.display = "block";
+        }
+      } else {
+        btn.onclick = () => selectOption(idx);
+      }
+
+      optArea.appendChild(btn);
+    });
+
+    document.getElementById("prevBtn").style.visibility = currentIndex > 0 ? "visible" : "hidden";
+    document.getElementById("nextBtn").style.visibility = currentIndex <= solvedIndex ? "visible" : "hidden";
+  }
+
+  function selectOption(idx) {
+    const q = currentQuestions[currentIndex];
+    const isCorrect = idx === q.c;
+
+    userAnswers[currentIndex] = idx;
+    solvedIndex = Math.max(solvedIndex, currentIndex);
+
+    if (isCorrect) {
+      stats.correct++;
+      q.answeredCorrectly = true;
+    } else {
+      stats.wrong++;
+
+      if (wrongQuestionsMode) {
+        // Yanlış Yapılan Sorular modunda soru yeniden eklenmez.
+      } else {
+        addWrongQuestionToPool(q);
+
+        if (!q.isRetry) {
+          const retryQuestion = {
+            ...q,
+            isRetry: true,
+            retryFrom: q.originalNo,
+            retryCount: 1
+          };
+
+          const insertIndex = Math.min(currentIndex + 5, currentQuestions.length);
+          currentQuestions.splice(insertIndex, 0, retryQuestion);
+        }
+      }
+    }
+
+    saveState();
+    loadQuestion();
+  }
+
+  function saveState() {
+    localStorage.setItem(currentSetKey, JSON.stringify({
+      currentQuestions,
+      currentIndex,
+      solvedIndex,
+      userAnswers,
+      stats
+    }));
+  }
+
+  function goForward() {
+    if (currentIndex < solvedIndex) {
+      currentIndex = solvedIndex + 1;
+    } else if (currentIndex < currentQuestions.length - 1) {
+      currentIndex++;
+    } else {
+      return showMenu();
+    }
+
+    saveState();
+    loadQuestion();
+    window.scrollTo(0, 0);
+  }
+
+  function goBack() {
+    if (currentIndex > 0) {
+      currentIndex--;
+      saveState();
+      loadQuestion();
+      window.scrollTo(0, 0);
+    }
+  }
+
+  function showMenu() {
+    wrongQuestionsMode = false;
+    document.getElementById("headerSubject").textContent = BASE_SUBJECT;
+    document.getElementById("quizContainer").style.display = "none";
+    document.getElementById("menuContainer").style.display = "block";
+    initMenu();
+    window.scrollTo(0, 0);
+  }
+
+  function clearAllStatistics() {
+    if (confirm("Tüm veriler sıfırlansın mı?")) {
+      Object.keys(localStorage).forEach(k => {
+        if (k.startsWith(storagePrefix())) localStorage.removeItem(k);
+      });
+      initMenu();
+    }
+  }
+
+  function resetCurrentSet() {
+    if (confirm("Bu deneme sıfırlansın mı?")) {
+      localStorage.removeItem(currentSetKey);
+      showMenu();
+    }
+  }
+
+  initMenu();
+</script>
+
+<script>
+function shuffleAllQuestions() {
+  if (!confirm("Tüm sorular ve şıkları karıştırılsın mı?")) return;
+
+  questions.forEach(q => {
+    const correct = q.o[q.c];
+    for (let i = q.o.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [q.o[i], q.o[j]] = [q.o[j], q.o[i]];
+    }
+    q.c = q.o.findIndex(x => x === correct);
+  });
+
+  for (let i = questions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [questions[i], questions[j]] = [questions[j], questions[i]];
+  }
+
+  if (typeof storagePrefix === "function") {
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith(storagePrefix())) localStorage.removeItem(k);
+    });
+  }
+
+  alert("Sorular karıştırıldı!");
+  if (typeof initMenu === "function") initMenu();
+}
+
+function printExam() {
+  const examTitle = (document.getElementById('mainTitle')?.textContent || document.title || 'Sınav').trim();
+  let html = '<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><title>' + examTitle + '</title><style>' +
+    '@page { size: A4; margin: 14mm; }' +
+    'body { font-family: Arial, sans-serif; color:#000; line-height:1.45; font-size:12pt; }' +
+    'h1 { text-align:center; font-size:18pt; margin:0 0 8mm; }' +
+    '.meta { margin-bottom:8mm; font-size:11pt; }' +
+    '.meta div { margin: 3mm 0; }' +
+    '.question { margin-bottom:6mm; page-break-inside: avoid; }' +
+    '.qtext { font-weight:bold; white-space: pre-line; }' +
+    '.options { margin-top:2mm; margin-left:6mm; }' +
+    '.options div { margin:1.4mm 0; white-space: pre-line; }' +
+    '.answer-key { page-break-before: always; margin-top: 8mm; }' +
+    '.answer-key h2 { text-align:center; font-size:16pt; margin:0 0 6mm; }' +
+    '.answer-grid { display:grid; grid-template-columns: repeat(4, 1fr); gap: 3mm 8mm; font-size:11pt; }' +
+    '.answer-item { padding:2mm 0; border-bottom:1px solid #ccc; }' +
+    '</style></head><body>' +
+    '<h1>' + examTitle + '</h1>' +
+    '<div class="meta"><div>Adı Soyadı: _________________________________</div><div>Tarih: ____ / ____ / ________</div><div>İmza: _________________________________</div></div>';
+
+  questions.forEach((q, i) => {
+    const labels = ['A', 'B', 'C', 'D', 'E'];
+    html += '<div class="question"><div class="qtext">Soru-' + (i + 1) + ': ' + q.q + '</div><div class="options">';
+    q.o.forEach((opt, idx) => {
+      html += '<div>' + labels[idx] + ') ' + opt + '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  html += '<div class="answer-key"><h2>Cevap Anahtarı</h2><div class="answer-grid">';
+  questions.forEach((q, i) => {
+    const labels = ['A', 'B', 'C', 'D', 'E'];
+    const correct = labels[q.c] || '';
+    html += '<div class="answer-item">' + (i + 1) + '. Soru: ' + correct + '</div>';
+  });
+  html += '</div></div></body></html>';
+
+  const w = window.open('', '_blank', 'width=900,height=700');
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { w.print(); }, 250);
+}
+
+</script>
+
+
+<button onclick="printExam()" id="printExamBtn" style="position:fixed;top:10px;right:10px;z-index:10000;background:#111;color:#fff;border:none;padding:10px 14px;border-radius:8px;cursor:pointer;font-weight:bold;">🖨 Yazdır</button>
+</body>
+</html>
